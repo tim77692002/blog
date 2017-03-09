@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="img">
+
+	<delete id="delete" parameterType="int">
+		delete from images where no = #{no}
+	</delete>
+	
+	<select id="readReply" resultType="ImgDto" parameterType="int">
+	select no, wname, title, content, grpno, indent, ansnum, fname from images where no = #{no}
+	</select>
+
+	<insert id="createReply" parameterType="ImgDto">
+		INSERT INTO images (no,
+		wname, title, content, passwd, wdate, grpno, indent,
+		ansnum, refno,
+		fname)
+		VALUES((SELECT NVL(MAX(no), 0) + 1 as no FROM images),
+		#{wname},
+		#{title}, #{content}, #{passwd}, sysdate, #{grpno}, #{indent}+1,
+		#{ansnum}+1, #{no}, #{fname}
+		)
+	</insert>
+
+	<update id="upAnsnum" parameterType="Map">
+		update images set
+		ansnum =
+		ansnum + 1
+		where grpno = #{grpno} and ansnum > #{ansnum}
+	</update>
+
+	<select id="checkRefno" parameterType="int" resultType="int">
+		select
+		count(refno) from images where refno=#{refno}
+	</select>
+
+	<update id="update" parameterType="ImgDto">
+		UPDATE images set wname=#{wname}, title=#{title}, content=#{content}
+		<if test="fname!=null and fname!=''">
+			,fname=#{fname}
+		</if>
+
+		WHERE no = #{no}
+	</update>
+
+	<select id="passCheck" parameterType="Map" resultType="int">
+		SELECT
+		COUNT(no) as cnt FROM images WHERE no=#{no} AND passwd=#{passwd}
+	</select>
+
+	<select id="imgRead" parameterType="int" resultType="Map">
+		SELECT *
+		FROM
+		(
+		select
+		lag(no,2) over (order by no) pre_no2,
+		lag(no,1) over (order
+		by no ) pre_no1,
+		no,
+		lead(no,1) over (order by no) nex_no1,
+		lead(no,2)
+		over (order by no) nex_no2,
+		lag(fname,2) over (order by no) pre_file2,
+		lag(fname,1) over (order by no ) pre_file1,
+		fname,
+		lead(fname,1) over
+		(order by no) nex_file1,
+		lead(fname,2) over (order by no) nex_file2
+		from (
+		SELECT no, fname
+		FROM images
+		ORDER BY no DESC
+		)
+		)
+		WHERE no = #{no}
+	</select>
+
+	<insert id="create" parameterType="ImgDto">
+		insert into IMAGES(no, wname,
+		title, content, passwd, grpno, fname, wdate)
+		values((select
+		nvl(max(no),0)+1 as no from images), #{wname},
+		#{title}, #{content},
+		#{passwd},
+		(SELECT NVL(MAX(grpno), 0)+1 FROM images), #{fname},
+		sysdate)
+	</insert>
+
+	<update id="upViewcnt" parameterType="int">
+		UPDATE images SET viewcnt =
+		viewcnt + 1 WHERE no=#{no}
+	</update>
+
+	<select id="read" parameterType="int" resultType="ImgDto">
+		SELECT no,
+		wname, title, viewcnt, wdate, content, fname
+		FROM images where no=#{no}
+	</select>
+
+	<select id="total" parameterType="Map" resultType="int">
+		select count(*) from images
+		<where>
+			<choose>
+				<when test="col=='wname'">wname like '%'||#{word}||'%'</when>
+				<when test="col=='title'">title like '%'||#{word}||'%'</when>
+				<when test="col=='content'">content like '%'||#{word}||'%'</when>
+			</choose>
+		</where>
+	</select>
+
+	<select id="list" parameterType="Map" resultType="ImgDto">
+		SELECT no, wname, title, content, passwd, viewcnt, wdate, grpno,
+		indent, fname, r
+		from(
+
+		SELECT no, wname, title, content, passwd,
+		viewcnt, wdate, grpno, indent,
+		fname, rownum r
+		from(
+
+		SELECT no, wname,
+		title, content, passwd, viewcnt, wdate, grpno, indent,
+		fname
+		FROM images
+		<where>
+			<choose>
+				<when test="col=='wname'">wname like '%'||#{word}||'%'</when>
+				<when test="col=='title'">title like '%'||#{word}||'%'</when>
+				<when test="col=='content'">content like '%'||#{word}||'%'</when>
+			</choose>
+		</where>
+		ORDER BY grpno DESC, ansnum
+		)
+		) 
+	<![CDATA[where r>=#{sno} and r<=#{eno}]]>
+	</select>
+
+</mapper>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- <update>는 파라미터 타입 필요함. 리절트타입은 필요 없음 -->
+<mapper namespace="memo">
+
+	<delete id="delete" parameterType="int">
+		delete from memo where memono
+		= #{memono}
+	</delete>
+
+	<update id="update" parameterType="MemoDto">
+		update memo set title =
+		#{title}, content = #{content} where memono =
+		#{memono}
+	</update>
+
+	<update id="upViewcnt" parameterType="int">
+		update memo set viewcnt =
+		viewcnt + 1 where memono = #{memono}
+	</update>
+
+	<select id="read" parameterType="int" resultType="MemoDto">
+		select
+		memono,title,content,to_char(wdate,'yyyy-mm-dd') wdate, viewcnt from
+		memo where memono = #{memono}
+	</select>
+
+	<insert id="create" parameterType="MemoDto">
+		insert into memo(memono,
+		title,content,wdate)
+		values(memo_seq.nextval,#{title},#{content},sysdate)
+	</insert>
+
+	<select id="total" parameterType="Map" resultType="int">
+		select count(*) from memo
+		<where>
+			<if test="col == 'title' ">
+				title like '%'||#{word}||'%'
+			</if>
+			<if test="col == 'content' ">
+				content like '%'||#{word}||'%'
+			</if>
+		</where>
+	</select>
+
+	<select id="list" parameterType="Map" resultType="MemoDto">
+		select memono, title, to_char(wdate, 'yyyy-mm-dd') wdate, viewcnt, r
+		from(
+		select memono, title, wdate, viewcnt, rownum r
+		from (
+		SELECT
+		memono, title, wdate, viewcnt FROM memo
+		<where>
+			<if test="col == 'title' ">
+				title like '%'||#{word}||'%'
+			</if>
+			<if test="col == 'content' ">
+				content like '%'||#{word}||'%'
+			</if>
+		</where>
+		ORDER BY memono DESC
+		)
+		)
+
+		<!-- 태그로 인식하지 않는 영역 -->
+		<![CDATA[ where r>=#{sno} and r<=#{eno} ]]>
+	</select>
+
+</mapper>

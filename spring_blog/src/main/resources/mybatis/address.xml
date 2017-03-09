@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- <update>는 파라미터 타입 필요함. 리전트타입은 필요 없음 -->
+<mapper namespace="address">
+
+	<delete id="delete" parameterType="int">
+		delete from address where no = #{no}
+	</delete>
+
+	<insert id="create" parameterType="AddressDto">
+		insert into address
+		(no,name,phone,zipcode,address1,address2,wdate) values ((select
+		nvl(max(no),0)+1 from
+		address),#{name},#{phone},#{zipcode},#{address1},#{address2},sysdate)
+	</insert>
+
+	<update id="update" parameterType="AddressDto">
+		update address set address1 =
+		#{address1}, address2 = #{address2}, zipcode = #{zipcode}, phone =
+		#{phone} where no = #{no}
+	</update>
+
+	<select id="read" parameterType="int" resultType="AddressDto">
+		select * from
+		ADDRESS where no = #{no}
+	</select>
+
+	<select id="total" parameterType="Map" resultType="int">
+		select count(*) from address
+		<where>
+			<choose>
+				<when test="col == 'name'">
+					name like '%'||#{word}||'%'
+				</when>
+				<when test="col == 'phone'">
+					phone like '%'||#{word}||'%'
+				</when>
+			</choose>
+		</where>
+	</select>
+
+	<select id="list" resultType="AddressDto" parameterType="Map">
+		select no, name, phone, to_char(wdate,'yyyy-mm-dd') as wdate, r from(
+		select no, name, phone, wdate, rownum r from (
+		select no, name, phone,
+		wdate from ADDRESS
+		<where>
+			<choose>
+				<when test="col == 'name'">
+					name like '%'||#{word}||'%'
+				</when>
+				<when test="col == 'phone'">
+					phone like '%'||#{word}||'%'
+				</when>
+			</choose>
+		</where>
+		order by no desc ) )
+		<![CDATA[                                                                        
+			where r>=#{sno} and r<=${eno}  
+		]]>
+	</select>
+</mapper>
